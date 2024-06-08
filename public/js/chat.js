@@ -15,6 +15,8 @@ var typing = false;
 var connected = false;
 var version = VERSION;
 var blop = new Audio('sounds/blop.wav');
+var onairblob = new Audio('http://78.46.39.20:14433/static/2WW60RsMD24.mp3');
+var config = {};
 var regex = /(&zwj;|&nbsp;)/g;
 
 var settings = {
@@ -51,6 +53,11 @@ var connect = function() {
     socket.onopen = function() {
         var ping = setInterval(function(){
             socket.send(JSON.stringify({type: 'ping'}));
+               if (onairblob.currentTime > 0 && !onairblob.paused){ 
+                 socket.send(JSON.stringify({type: 'onairstatus',currentTime:onairblob.currentTime }));                
+                            }else{
+                             return;   
+                            }
         }, 50 * 1000);
         console.info('Connection established.');
         updateInfo();
@@ -79,7 +86,12 @@ var connect = function() {
             console.log(data);
         }
         
-        
+        if (data.type == "onair"){
+    onairblob.src=data.data
+    onairblob.load();
+    onairblob.play();
+            
+        }
         
         if(data.type == 'delete') {
             return $('div[data-mid="' + data.message + '"]').remove();
@@ -147,6 +159,23 @@ var connect = function() {
                     updateBar('mdi-content-send', 'Enter your message here', false);
                     connected = true;
                     settings.name = username;
+                     if(data.config.stream){
+                        if (onairblob.currentTime > 0 && !onairblob.paused){
+                            return;                  
+                            }else if (data.config.filePath.indexOf("http")>-1){
+                                
+                         onairblob.src=data.config.filePath
+    onairblob.load();
+       onairblob.currentTime = data.config.currentTime                     
+    onairblob.play();
+
+                            }else{
+                                console.log(false)
+                            }
+                     
+                      }
+                                ///  $('#stream').show();
+                    
                     localStorage.settings = JSON.stringify(settings);
                     break;
 
@@ -748,12 +777,17 @@ if(typeof(Storage) !== 'undefined') {
 }
 
 window.onfocus = function() {
-    document.title = 'Node.JS Chat';
+    document.title = 'CHAT CHILLING';
     focus = true;
     unread = 0;
 };
 
+onairblob.addEventListener("ended", function(){
+    // onairblob.currentTime = 0;
+                     socket.send(JSON.stringify({type: 'onairstatus',currentTime:0 }));                
 
+     console.log("ended");
+});
 window.onblur = function() {
     focus = false;
 };
